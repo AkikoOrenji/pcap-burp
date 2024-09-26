@@ -25,6 +25,7 @@ import pcap.reconst.http.datamodel.RecordedHttpRequestMessage;
 import pcap.reconst.http.datamodel.RecordedHttpResponse;
 import pcap.reconst.tcp.TcpConnection;
 import pcap.reconst.tcp.TcpReassembler;
+import java.net.URL;
 import burp.BurpExtender;
 import burp.IHttpService;
 import burp.IRequestInfo;
@@ -45,9 +46,16 @@ public class HttpFlowParser extends pcap.reconst.http.HttpFlowParser {
 		byte[] rawdata = null;
 		if (flow.hasRequestData()) {
 			PcapRequestResponse rr = new PcapRequestResponse(flow, assembler);
-			BurpExtender.callbacks.addToSiteMap(rr);
-			IHttpService rrServ = rr.getHttpService();
-			BurpExtender.callbacks.doPassiveScan(rrServ.getHost(), rrServ.getPort(), false, rr.getRequest(), rr.getResponse());
+            // Check if the request is in scope before adding to site map
+			// Construct the URL manually
+            IHttpService httpService = rr.getHttpService();
+            String urlString = httpService.getProtocol() + "://" + httpService.getHost() + ":" + httpService.getPort();
+			URL url = new URL(urlString);
+            if (BurpExtender.callbacks.isInScope(url)) {
+                BurpExtender.callbacks.addToSiteMap(rr);
+            }
+			//IHttpService rrServ = rr.getHttpService();
+			//BurpExtender.callbacks.doPassiveScan(rrServ.getHost(), rrServ.getPort(), false, rr.getRequest(), rr.getResponse());
 			
 			RecordedHttpRequestMessage request;
 			RecordedHttpResponse response = null;
